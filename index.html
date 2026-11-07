@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Geometrie-Detektive</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#14213d;--pri:#2457d6;--pt:#fff;--ok:#1b8a4b;--bad:#c2410c;--sel:#ffb703;--fig:#dbe7ff;--line:#cbd5e1;--fs:20px}
+[data-t=dark]{--bg:#12161f;--card:#1d2330;--ink:#eef2fb;--pri:#6f98ff;--pt:#0b1020;--ok:#4ade80;--bad:#fb923c;--fig:#2b3a63;--line:#3a4560}
+[data-t=hc]{--bg:#000;--card:#000;--ink:#fff;--pri:#ffe600;--pt:#000;--ok:#00ff7f;--bad:#ff8c00;--fig:#1c1c1c;--line:#fff;--sel:#00e5ff}
+*{box-sizing:border-box}:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){[data-t=""]{--bg:#12161f;--card:#1d2330;--ink:#eef2fb;--pri:#6f98ff;--pt:#0b1020;--ok:#4ade80;--bad:#fb923c;--fig:#2b3a63;--line:#3a4560}}
+.gp{fill:var(--ink);opacity:.55;cursor:pointer}.gp.on{fill:var(--pri);opacity:1}html{font-size:var(--fs)}
+body{margin:0;background:var(--bg);color:var(--ink);font:1rem/1.5 "Segoe UI",system-ui,Arial,sans-serif}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 16px;background:var(--card);border-bottom:3px solid var(--line);font-weight:700}
+main{max-width:920px;margin:0 auto;padding:12px 16px 40px}
+h1,h2{line-height:1.25;margin:.4em 0}h1{font-size:1.6rem}h2{font-size:1.25rem}
+.btn{font:inherit;border:3px solid var(--pri);background:var(--card);color:var(--ink);border-radius:16px;padding:.5rem 1rem;min-height:56px;cursor:pointer;margin:4px 4px 4px 0}
+.btn.p{background:var(--pri);color:var(--pt);font-weight:700}.btn:disabled{opacity:.4}
+.btn:focus-visible,[tabindex]:focus-visible,summary:focus-visible{outline:5px solid var(--sel);outline-offset:3px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.tile{font:inherit;text-align:left;background:var(--card);color:var(--ink);border:3px solid var(--line);border-radius:18px;padding:12px;cursor:pointer;display:flex;flex-direction:column;gap:4px}
+.tile:hover,.tile:focus-visible{border-color:var(--pri)}.tile .ic{font-size:2rem}.tile small{opacity:.8}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.bar progress{flex:1;min-width:100px;height:18px}
+.stage svg{width:100%;max-height:58vh;background:var(--card);border:3px solid var(--line);border-radius:18px;display:block}
+.stage.lock,.ctl.lock{pointer-events:none;opacity:.85}
+.draw{touch-action:none;cursor:crosshair}
+.fg{fill:var(--fig);stroke:var(--ink);stroke-width:4;stroke-linejoin:round}
+.sg{stroke:var(--ink);stroke-width:5;stroke-linecap:round;fill:none}.sg.on{stroke:var(--pri);stroke-width:10}
+[data-i]{cursor:pointer}
+.vt{fill:var(--card);stroke:var(--pri);stroke-width:4}.vt.on{fill:var(--pri)}
+.sc{fill:var(--card);stroke:var(--ink);stroke-width:2;cursor:pointer}.sc.on{fill:var(--pri)}.sc.ref{fill:var(--sel);cursor:default}
+.arc{fill:none;stroke:var(--bad);stroke-width:7}
+.ax{stroke:#d62828;stroke-width:3;stroke-dasharray:8 6}
+.dr{stroke:#d62828;stroke-width:5;stroke-linecap:round}.okl{stroke:var(--ok)}.badl{stroke:var(--bad);opacity:.5}
+.sol{stroke:var(--ok);stroke-width:4;stroke-dasharray:8 6}
+.ctl{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.opt{flex:1 1 140px;max-width:220px;padding:6px}.opt svg{width:100%;display:block}.opt:disabled{opacity:.35}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
+.card{border:3px solid var(--line);border-radius:14px;padding:6px;background:var(--card);cursor:pointer;text-align:center;font-size:.85rem}
+.card svg{border:0!important;background:none!important}
+.card.on{border-color:var(--pri);box-shadow:0 0 0 4px var(--pri)}.card.err{border:4px dashed var(--bad)}
+.fb{margin-top:12px;padding:12px 16px;border-radius:14px;font-weight:700}.fb:empty{display:none}
+.fb.ok{background:var(--ok);color:#fff}.fb.bad{background:var(--card);border:3px solid var(--bad)}.fb.n{background:var(--card);border:3px solid var(--line)}
+details{margin-top:10px;background:var(--card);border:2px solid var(--line);border-radius:12px;padding:8px 12px}summary{cursor:pointer;font-weight:700}
+.big{font-size:3rem;margin:.2em 0}
+dialog{border:3px solid var(--pri);border-radius:18px;background:var(--card);color:var(--ink);max-width:520px;width:92%}
+.row{display:flex;flex-wrap:wrap;gap:4px}footer{font-size:.75rem;opacity:.8;margin-top:24px}
+</style></head><body>
+<header><span>🔍 Geometrie-Detektive</span><button class="btn" id="cfgb">⚙️ Einstellungen</button></header>
+<main id="app"></main><dialog id="dlg"></dialog>
+<noscript>Bitte JavaScript aktivieren.</noscript>
+<script>
+const $=s=>document.querySelector(s),E=(t,c,h)=>{const e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e};
+const R=(a,b)=>a+Math.floor(Math.random()*(b-a+1)),pick=a=>a[R(0,a.length-1)],shuf=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(x=>x[1]);
+const ls={g(k,d){try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}},s(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let cfg=Object.assign({t:'',fs:20,n:5,say:0},ls.g('gd_cfg',{})),stars=ls.g('gd_st',{}),G;
+const apply=()=>{document.documentElement.dataset.t=cfg.t;document.documentElement.style.setProperty('--fs',cfg.fs+'px');ls.s('gd_cfg',cfg)};
+const say=t=>{if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='de-DE';u.rate=.9;speechSynthesis.speak(u)};
+/* Geometrie */
+const rot=(P,a)=>{const c=Math.cos(a),s=Math.sin(a);return P.map(([x,y])=>[150+(x-150)*c-(y-110)*s,110+(x-150)*s+(y-110)*c])};
+const rr=()=>R(0,359)*Math.PI/180;
+const ang=(P,i)=>{const n=P.length,v=P[i],a=P[(i+n-1)%n],b=P[(i+1)%n],x=a[0]-v[0],y=a[1]-v[1],u=b[0]-v[0],w=b[1]-v[1];return Math.acos((x*u+y*w)/(Math.hypot(x,y)*Math.hypot(u,w)))*180/Math.PI};
+const par=(s,t)=>{const a=s[2]-s[0],b=s[3]-s[1],c=t[2]-t[0],d=t[3]-t[1];return Math.abs(a*d-b*c)<.02*Math.hypot(a,b)*Math.hypot(c,d)};
+const sides=P=>P.map((p,i)=>[...p,...P[(i+1)%P.length]]);
+const anyPar=S=>S.some((s,i)=>S.some((t,j)=>j>i&&par(s,t)));
+const poly=P=>`<polygon class="fg" points="${P.join(' ')}"/>`,VB='-25 -25 350 270';
+const secD=(P,i,r=36)=>{const n=P.length,v=P[i],a=P[(i+n-1)%n],b=P[(i+1)%n],u=q=>{const x=q[0]-v[0],y=q[1]-v[1],l=Math.hypot(x,y);return[x/l,y/l]},d=u(a),e=u(b),sw=d[0]*e[1]-d[1]*e[0]>0?1:0;return `M${v} L${v[0]+r*d[0]},${v[1]+r*d[1]} A${r} ${r} 0 0 ${sw} ${v[0]+r*e[0]},${v[1]+r*e[1]}Z`};
+const angSvg=(a,t0,cx,cy,L,r,vb)=>{const t1=t0+a*Math.PI/180,P=(t,d)=>[cx+d*Math.cos(t),cy-d*Math.sin(t)],A=P(t0,L),B=P(t1,L),S=P(t0,r),T=P(t1,r);
+ return `<svg viewBox="${vb}" role="img" aria-label="Winkel"><path class="arc" d="M${S} A${r} ${r} 0 ${a>180?1:0} 0 ${T}"/><line class="sg" x1="${cx}" y1="${cy}" x2="${A[0]}" y2="${A[1]}"/><line class="sg" x1="${cx}" y1="${cy}" x2="${B[0]}" y2="${B[1]}"/><circle cx="${cx}" cy="${cy}" r="5" fill="var(--ink)"/></svg>`};
+const SH=[
+{n:'Quadrat',p:[[95,55],[205,55],[205,165],[95,165]],ax:[[150,55,150,165],[95,110,205,110],[95,55,205,165],[205,55,95,165]]},
+{n:'Rechteck',p:[[60,70],[240,70],[240,150],[60,150]],ax:[[150,70,150,150],[60,110,240,110]]},
+{n:'Parallelogramm',p:[[40,150],[200,150],[260,70],[100,70]],ax:[]},
+{n:'gleichschenkliges Trapez',p:[[40,150],[260,150],[210,70],[90,70]],ax:[[150,70,150,150]]},
+{n:'rechtwinkliges Trapez',p:[[50,150],[250,150],[250,70],[110,70]],ax:[]},
+{n:'Raute',p:[[150,35],[250,110],[150,185],[50,110]],ax:[[150,35,150,185],[50,110,250,110]]},
+{n:'Drachen',p:[[150,30],[220,100],[150,190],[80,100]],ax:[[150,30,150,190]]},
+{n:'gleichschenkliges Dreieck',p:[[150,35],[240,175],[60,175]],ax:[[150,35,150,175]]},
+{n:'gleichseitiges Dreieck',p:[[150,35],[240,191],[60,191]],ax:[[150,35,150,191],[240,191,105,113],[60,191,195,113]]},
+{n:'rechtwinkliges Dreieck',p:[[70,60],[70,170],[230,170]],ax:[]},
+{n:'Haus',p:[[60,100],[60,180],[240,180],[240,100],[150,40]],ax:[[150,40,150,180]]},
+{n:'unregelmäßiges Viereck',p:[[60,160],[230,170],[250,80],[110,50]],ax:[]}];
+const TY=[['spitzer',20,80,'kleiner als 90°'],['rechter',90,90,'genau 90°'],['stumpfer',100,170,'zwischen 90° und 180°'],['gestreckter',180,180,'genau 180° (eine gerade Linie)'],['überstumpfer',190,340,'zwischen 180° und 360°']];
+const SC={'Leiter':()=>[[120,20,100,205],[200,20,180,205],...[50,90,130,170].map(y=>{const x=120-20*(y-20)/185;return[x,y,x+80,y]})],
+'Eisenbahn-Schienen':()=>[[30,150,270,70],[30,190,270,110],...[.1,.3,.5,.7,.9].map(t=>[30+240*t,150-80*t-10,30+240*t,190-80*t+10])],
+'Fenster':()=>[[60,30,240,30],[240,30,240,190],[240,190,60,190],[60,190,60,30],[150,30,150,190],[60,110,240,110]],
+'Heft':()=>[[60,20,240,20],[240,20,240,200],[240,200,60,200],[60,200,60,20],[90,20,90,200],...[60,90,120,150,180].map(y=>[60,y,240,y])],
+'Zaun':()=>[[30,90,270,90],[30,160,270,160],...[50,90,130,170,210,250].map(x=>[x,60,x,190])]};
+/* Hilfen */
+const hits=st=>[...st.querySelectorAll('[data-i]')];
+const tap=(el,f)=>{el.onclick=f;el.onkeydown=e=>{if(e.key=='Enter'||e.key==' '){e.preventDefault();f()}}};
+const ln=(s,c='sg',x='')=>`<line class="${c}" x1="${s[0]}" y1="${s[1]}" x2="${s[2]}" y2="${s[3]}" ${x}/>`;
+/* Aufgaben */
+function segTask(S,q,ex,fill=''){return{q,ex,mount(st,api){
+ st.innerHTML=`<svg viewBox="${VB}" role="img" aria-label="Bild zur Aufgabe">${fill}${S.map(s=>ln(s)).join('')}${S.map((s,i)=>ln(s,'h',`data-i="${i}" tabindex="0" role="button" aria-label="Linie ${i+1}" pointer-events="stroke" stroke="transparent" stroke-width="30" stroke-linecap="round"`)).join('')}</svg>`;
+ const L=st.querySelectorAll('.sg'),sel=[],paint=()=>L.forEach((l,i)=>l.classList.toggle('on',sel.includes(i)));
+ hits(st).forEach(h=>tap(h,()=>{const i=+h.dataset.i,k=sel.indexOf(i);k<0?sel.push(i):sel.splice(k,1);paint();if(sel.length==2&&!api.res(par(S[sel[0]],S[sel[1]]),ex)){sel.length=0;paint()}}));
+ api.btn('Keine parallelen Linien',()=>api.res(!anyPar(S),ex))}}}
+function genPar(){const k=R(0,2),ex='Parallele Linien haben überall den gleichen Abstand und treffen sich nie.';
+ if(k==0){const s=pick(SH),P=rot(s.p,rr());return segTask(sides(P),`Figur: ${s.n}. Tippe zwei parallele Seiten an – oder wähle „Keine parallelen Linien“.`,ex,poly(P))}
+ if(k==1){const [nm,f]=pick(Object.entries(SC));return segTask(f(),`${nm}: Tippe zwei parallele Linien an.`,ex)}
+ const B=shuf([10,45,80,115,150]),none=Math.random()<.4,A=none?B.slice(0,4):[...B.slice(0,3),B[0]],pos=shuf([[80,60],[220,60],[80,160],[220,160]]);
+ const S=shuf(A.map((a,i)=>{const t=a*Math.PI/180,c=pos[i][0]+R(-15,15),d=pos[i][1]+R(-15,15);return[c-60*Math.cos(t),d+60*Math.sin(t),c+60*Math.cos(t),d-60*Math.sin(t)]}));
+ return segTask(S,'Welche Geraden sind parallel? Tippe zwei an – oder wähle „Keine parallelen Linien“.',ex)}
+function genName(){const t=pick(TY),a=R(t[1],t[2]),ex=`Das ist ein ${t[0]} Winkel: ${t[3]}.`;
+ return{q:'Wie heißt dieser Winkel? Der rote Bogen zeigt den Winkel.',ex,
+ hint:'<details><summary>💡 Merkhilfe</summary><ul>'+TY.map(y=>`<li><b>${y[0]} Winkel:</b> ${y[3]}</li>`).join('')+'</ul></details>',
+ mount(st,api){st.innerHTML=angSvg(a,rr(),175,135,110,50,'0 0 350 270');TY.forEach(y=>api.btn(y[0]+' Winkel',()=>api.res(y==t,ex)))}}}
+function genRight(){const s=pick(SH),P=rot(s.p,rr()),w=P.map((_,i)=>Math.abs(ang(P,i)-90)<1.5),n=w.filter(x=>x).length;
+ return{q:`Figur: ${s.n}. Tippe alle rechten Winkel an. Gibt es keinen, tippe gleich auf „Fertig“.`,ex:`Rechte Winkel sind genau 90° groß, wie die Ecke eines Blattes. Hier gibt es ${n}.`,
+ mount(st,api){st.innerHTML=`<svg viewBox="${VB}" role="img" aria-label="Figur">${poly(P)}${P.map((p,i)=>`<circle class="vt" data-i="${i}" tabindex="0" role="button" aria-label="Ecke ${i+1}" cx="${p[0]}" cy="${p[1]}" r="17"/>`).join('')}</svg>`;
+ const sel=new Set();hits(st).forEach(h=>tap(h,()=>{const i=+h.dataset.i;sel.has(i)?sel.delete(i):sel.add(i);h.classList.toggle('on')}));
+ api.btn('Fertig ✔',()=>{if(!api.res(w.every((x,i)=>x==sel.has(i)),this.ex)){sel.clear();hits(st).forEach(h=>h.classList.remove('on'))}},'p')}}}
+function genEq(){let s,P,A,ri,eq;do{s=pick(SH);P=rot(s.p,rr());A=P.map((_,i)=>ang(P,i));ri=R(0,P.length-1);eq=A.map((a,i)=>i!=ri&&Math.abs(a-A[ri])<1.5)}while(!eq.some(x=>x));
+ const ex='Gleich große Winkel sehen gleich weit geöffnet aus. Hier gibt es '+(eq.filter(x=>x).length+1)+' gleich große Winkel (mit dem gelben).';
+ return{q:`Figur: ${s.n}. Der gelbe Winkel ist markiert. Tippe alle Winkel an, die genau so groß sind. Dann „Fertig“.`,ex,
+ mount(st,api){st.innerHTML=`<svg viewBox="${VB}" role="img" aria-label="Figur">${poly(P)}${P.map((_,i)=>`<path class="sc${i==ri?' ref':''}" ${i==ri?'':`data-i="${i}" tabindex="0" role="button" aria-label="Winkel ${i+1}"`} d="${secD(P,i)}"/>`).join('')}</svg>`;
+ const sel=new Set();hits(st).forEach(h=>tap(h,()=>{const i=+h.dataset.i;sel.has(i)?sel.delete(i):sel.add(i);h.classList.toggle('on')}));
+ api.btn('Fertig ✔',()=>{if(!api.res(eq.every((x,i)=>x==sel.has(i)),ex)){sel.clear();hits(st).forEach(h=>h.classList.remove('on'))}},'p')}}}
+function genAxis(){const s=pick(Math.random()<.2?SH.filter(x=>!x.ax.length):SH.filter(x=>x.ax.length)),A=s.ax;
+ const ex=A.length?`Diese Figur (${s.n}) hat ${A.length} Symmetrieachse(n). Man kann sie dort falten, sodass beide Hälften genau aufeinanderliegen.`:`Diese Figur (${s.n}) hat keine Symmetrieachse.`;
+ return{q:`Figur: ${s.n}. Zeichne alle Symmetrieachsen ein: Ziehe mit Finger oder Maus eine Linie. Hat die Figur keine, wähle „Keine Achse“.`,ex,max:3,
+ mount(st,api){st.innerHTML=`<svg class="draw" viewBox="${VB}" role="img" aria-label="Figur zum Zeichnen">${poly(s.p)}<g></g></svg>`;
+ const sv=st.firstChild,g=sv.querySelector('g'),found=new Set();let a,l;
+ const pt=e=>{const p=sv.createSVGPoint();p.x=e.clientX;p.y=e.clientY;const q=p.matrixTransform(sv.getScreenCTM().inverse());return[q.x,q.y]};
+ const reveal=()=>A.forEach(x=>g.insertAdjacentHTML('beforeend',ln(x,'sol')));
+ sv.onpointerdown=e=>{a=pt(e);l=document.createElementNS('http://www.w3.org/2000/svg','line');l.setAttribute('class','dr');l.setAttribute('x1',a[0]);l.setAttribute('y1',a[1]);l.setAttribute('x2',a[0]);l.setAttribute('y2',a[1]);g.appendChild(l);sv.setPointerCapture(e.pointerId)};
+ sv.onpointermove=e=>{if(!a)return;const b=pt(e);l.setAttribute('x2',b[0]);l.setAttribute('y2',b[1])};
+ sv.onpointercancel=()=>{if(l)l.remove();a=null};
+ sv.onpointerup=e=>{if(!a)return;const b=pt(e),m=[(a[0]+b[0])/2,(a[1]+b[1])/2],d=[b[0]-a[0],b[1]-a[1]],len=Math.hypot(...d),cur=l;a=null;
+  if(len<50){cur.remove();api.say('Die Linie ist zu kurz. Zeichne eine längere Linie.');return}
+  const i=A.findIndex(x=>{const u=[x[2]-x[0],x[3]-x[1]],ul=Math.hypot(...u),dist=Math.abs(u[0]*(x[1]-m[1])-(x[0]-m[0])*u[1])/ul;return dist<20&&Math.abs(u[0]*d[1]-u[1]*d[0])/(ul*len)<.22});
+  if(i>=0){if(found.has(i)){cur.remove();api.say('Diese Achse hast du schon.');return}
+   found.add(i);cur.setAttribute('class','dr okl');if(found.size==A.length)api.res(true,ex);else api.say(`✔️ Das ist eine Achse! Es fehlen noch ${A.length-found.size}.`)}
+  else{cur.setAttribute('class','dr badl');setTimeout(()=>cur.remove(),800);if(api.res(false,ex))reveal()}};
+ api.btn('Keine Achse',()=>{const f=api.res(!A.length,ex);if(f&&A.length)reveal()})}}}
+function genHalf(){const m=R(3,4),L=[[100,20]];for(let k=1;k<=m;k++)L.push([R(22,80),20+Math.round(120*k/(m+1))+R(-8,8)]);L.push([100,140]);
+ const mid=L.slice(1,-1),mir=mid.map(([x,y])=>[200-x,y]).reverse(),fl=mid.map(([x,y])=>[200-x,160-y]).sort((p,q)=>q[1]-p[1]),tr=mid.map(([x,y])=>[x+100,y]).reverse();
+ const O=shuf([[1,L.concat(mir)],[0,L.concat(fl)],[0,L.concat(tr)]]),ex='Beim Spiegeln liegt jeder Punkt gleich weit von der Achse entfernt, nur auf der anderen Seite – und gleich hoch.';
+ return{q:'Die Figur ist symmetrisch. Die rote Linie ist die Spiegelachse. Welche ganze Figur ist richtig?',ex,
+ mount(st,api){st.innerHTML=`<svg viewBox="0 0 200 160" role="img" aria-label="Halbe Figur"><polygon class="fg" points="${L.join(' ')}"/><line class="ax" x1="100" y1="4" x2="100" y2="156"/></svg>`;
+ O.forEach((o,i)=>{const b=api.btn(`<svg viewBox="0 0 200 160" style="border:0;background:none" role="img" aria-label="Möglichkeit ${'ABC'[i]}"><polygon class="fg" points="${o[1].join(' ')}"/></svg><b>${'ABC'[i]}</b>`,()=>{if(!api.res(!!o[0],ex))b.disabled=true},'opt')})}}}
+function genMir(){const V=Math.random()<.6,cx=V?3:6,cy=V?4:2,k=30;let P;
+ do{const n=R(4,6),o=rr(),m=new Map();for(let i=0;i<n;i++){const t=o+i*2*Math.PI/n,f=R(5,10)/10;let x=Math.round(cx+(V?3:5)*f*Math.cos(t)),y=Math.round(cy+(V?3:2.5)*f*Math.sin(t));
+  x=Math.max(V?1:1,Math.min(V?5:11,x));y=Math.max(V?1:0,Math.min(V?7:3,y));m.set(x+'-'+y,[x,y])}P=[...m.values()]}while(P.length<4);
+ const M=p=>V?[12-p[0],p[1]]:[p[0],8-p[1]],ex='Beim Spiegeln hat jeder Punkt auf der anderen Seite der Achse den gleichen Abstand zur Achse. Er liegt auf dem Gitter genau gegenüber.';
+ return{q:'Spiegle die Figur an der roten Achse: Tippe auf alle Gitterpunkte, die zu den Ecken der Spiegelfigur gehören. Dann „Fertig“.',ex,P,
+ mount(st,api){const Q=P.map(M),key=p=>p.join('-'),want=new Set(Q.map(key)),sc=A=>A.map(q=>[q[0]*k,q[1]*k]);let gl='',dots='';
+ for(let i=0;i<=12;i++)gl+=`<line x1="${i*k}" y1="0" x2="${i*k}" y2="240"/>`;for(let j=0;j<=8;j++)gl+=`<line x1="0" y1="${j*k}" x2="360" y2="${j*k}"/>`;
+ for(let x=0;x<=12;x++)for(let y=0;y<=8;y++)dots+=`<circle class="gp" data-i="${x}-${y}" tabindex="0" role="button" aria-label="Punkt ${x}, ${y}" cx="${x*k}" cy="${y*k}" r="7" stroke="transparent" stroke-width="16"/>`;
+ st.innerHTML=`<svg viewBox="-15 -15 390 270" role="img" aria-label="Gitter mit Figur"><g stroke="var(--line)" stroke-width="1">${gl}</g><polygon class="fg" points="${sc(P).join(' ')}"/>${V?ln([180,-8,180,248],'ax'):ln([-8,120,368,120],'ax')}<g id="sol"></g>${dots}</svg>`;
+ const sel=new Set(),all=hits(st);all.forEach(h=>tap(h,()=>{const i=h.dataset.i;sel.has(i)?sel.delete(i):sel.add(i);h.classList.toggle('on')}));
+ api.btn('Fertig ✔',()=>{const ok=sel.size==want.size&&[...want].every(w=>sel.has(w));
+  if(api.res(ok,ex))st.querySelector('#sol').innerHTML=`<polygon points="${sc(Q).join(' ')}" fill="none" stroke="var(--ok)" stroke-width="4" stroke-dasharray="8 5"/>`;
+  else{sel.clear();all.forEach(h=>h.classList.remove('on'))}},'p')}}}
+function genDet(){const noG=TY.filter(y=>y[0]!='gestreckter'),cat=n=>({3:'Dreieck',4:'Viereck',5:'Fünfeck'})[n];
+ const mk=[e=>{const t=pick(noG),a=R(t[1],t[2]),w=e?pick(noG.filter(y=>y!=t)):t;return{s:angSvg(a,rr(),75,55,45,20,'0 0 150 110'),c:`Das ist ein ${w[0]} Winkel.`}},
+ e=>{const a=R(10,150)*Math.PI/180,d=e?(R(0,1)?1:-1)*R(14,25)*Math.PI/180:0,l=(t,y)=>`<line class="sg" x1="${75-38*Math.cos(t)}" y1="${y+38*Math.sin(t)}" x2="${75+38*Math.cos(t)}" y2="${y-38*Math.sin(t)}"/>`;return{s:`<svg viewBox="-10 -10 170 130">${l(a,32)}${l(a+d,78)}</svg>`,c:'Diese Linien sind parallel.'}},
+ e=>{const s=pick(SH),c=e?pick(['Dreieck','Viereck','Fünfeck'].filter(x=>x!=cat(s.p.length))):cat(s.p.length);return{s:`<svg viewBox="20 20 250 190">${poly(s.p)}</svg>`,c:`Das ist ein ${c}.`}},
+ e=>{const s=pick(SH.filter(x=>x.ax.length)),c=Math.cos(.35),n=Math.sin(.35),l=e?[150-85*c,110-85*n,150+85*c,110+85*n]:s.ax[0];return{s:`<svg viewBox="20 20 250 190">${poly(s.p)}${ln(l,'ax')}</svg>`,c:'Die rote Linie ist eine Symmetrieachse.'}}];
+ const E_=new Set(shuf([0,1,2,3,4,5]).slice(0,R(2,3))),C=[0,1,2,3,4,5].map(i=>({...pick(mk)(E_.has(i)),err:E_.has(i)}));
+ return{q:'🕵️ Fehlerdetektiv: Bei manchen Karten steht etwas Falsches. Tippe alle Karten mit einem Fehler an. Dann „Fertig“.',ex:`Es gab ${E_.size} Fehler (jetzt gestrichelt markiert).`,
+ mount(st,api){st.innerHTML=`<div class="cards">${C.map((c,i)=>`<div class="card" data-k="${i}" tabindex="0" role="button">${c.s}<div>${c.c}</div></div>`).join('')}</div>`;
+ const K=[...st.querySelectorAll('.card')];K.forEach(k=>tap(k,()=>k.classList.toggle('on')));
+ api.btn('Fertig ✔',()=>{const ok=C.every((c,i)=>c.err==K[i].classList.contains('on'));if(api.res(ok,this.ex)){K.forEach((k,i)=>C[i].err&&k.classList.add('err'))}else K.forEach(k=>k.classList.remove('on'))},'p')}}}
+const ACT=[
+{id:'par',ic:'↔️',nm:'Parallele Linien',d:'Finde Linien, die sich nie treffen: bei Figuren und Gegenständen.',g:genPar},
+{id:'name',ic:'📐',nm:'Winkel benennen',d:'Spitz, recht, stumpf, gestreckt oder überstumpf?',g:genName},
+{id:'right',ic:'⬛',nm:'Rechte Winkel finden',d:'Entdecke alle rechten Winkel in Figuren.',g:genRight},
+{id:'eq',ic:'🎨',nm:'Gleiche Winkel',d:'Tippe alle Winkel an, die gleich groß sind.',g:genEq},
+{id:'axis',ic:'🪞',nm:'Symmetrieachsen',d:'Zeichne alle Achsen mit dem Finger ein.',g:genAxis},
+{id:'half',ic:'🧩',nm:'Passende Hälfte',d:'Welche Figur ist richtig gespiegelt?',g:genHalf},
+{id:'mir',ic:'🖍️',nm:'Spiegeln auf dem Gitter',d:'Spiegle eine Figur an der roten Achse.',g:genMir},
+{id:'det',ic:'🕵️',nm:'Fehlerdetektiv (Spiel)',d:'Finde die Geometrie-Fehler auf den Karten.',g:genDet},
+{id:'test',ic:'🏆',nm:'Abschlusstest',d:'10 gemischte Fragen. Jede nur ein Versuch.',g:()=>pick([genPar,genName,genRight,genEq,genAxis,genHalf,genMir])(),test:1}];
+/* Ablauf */
+const show=h=>{$('#app').innerHTML=h;scrollTo(0,0)};
+function home(){if(window.speechSynthesis)speechSynthesis.cancel();const tot=Object.values(stars).reduce((a,b)=>a+b,0);
+ show(`<h1>Willkommen, Detektiv! 🔍</h1><p>Wähle eine Aufgabe. Fang oben an. Du kannst alles so oft wiederholen, wie du willst. Deine Sterne: <b>${tot} ⭐</b></p><div class="tiles">${ACT.map((a,i)=>`<button class="tile" data-a="${i}"><span class="ic">${a.ic}</span><b>${i+1}. ${a.nm}</b><span>${'⭐'.repeat(stars[a.id]||0)||'noch keine Sterne'}</span><small>${a.d}</small></button>`).join('')}</div>
+ <footer>Datenschutz: Alles bleibt auf diesem Gerät. Keine Namen, kein Internet, keine Cookies. Nur Sterne und Einstellungen werden in diesem Browser gespeichert (unter ⚙️ löschbar).</footer>`);
+ document.querySelectorAll('.tile').forEach(t=>t.onclick=()=>start(ACT[+t.dataset.a]))}
+function start(a){G={a,i:0,ok:0,n:a.test?10:a.id=='det'?Math.min(3,cfg.n):cfg.n};next()}
+function next(){if(G.i>=G.n)return fin();G.tries=0;const c=G.cur=G.a.g();c.max=G.a.test?1:(c.max||2);
+ show(`<div class="bar"><button class="btn" id="hm">← Menü</button><b>Aufgabe ${G.i+1} von ${G.n}</b><progress max="${G.n}" value="${G.i}"></progress></div><h2 id="q"></h2><button class="btn" id="sy">🔊 Vorlesen</button><div id="st" class="stage"></div><div id="ctl" class="ctl"></div><div id="hint"></div><div id="fb" role="status" aria-live="polite"></div><div id="nx"></div>`);
+ $('#q').textContent=c.q;$('#hint').innerHTML=c.hint||'';$('#hm').onclick=home;$('#sy').onclick=()=>say(c.q);if(cfg.say)say(c.q);
+ const fb=(t,k)=>{const f=$('#fb');f.className='fb '+k;f.textContent=t};
+ const end=()=>{$('#st').classList.add('lock');$('#ctl').classList.add('lock');const b=E('button','btn p',G.i+1>=G.n?'Ergebnis ansehen →':'Weiter →');b.onclick=()=>{G.i++;next()};$('#nx').append(b);b.focus()};
+ const api={say:t=>fb(t,'n'),
+ btn:(l,f,k)=>{const b=E('button','btn '+(k||''),l);b.onclick=f;$('#ctl').append(b);return b},
+ res(ok,ex){if(ok){if(!G.tries)G.ok++;fb('🎉 Richtig! Super gemacht.','ok');end();return 1}
+  G.tries++;if(G.tries>=c.max){fb(G.a.test?'Leider nicht richtig. Weiter geht es!':'Das war knifflig. '+(ex||''),'bad');end();return 1}
+  fb('🤔 Fast! Schau noch einmal genau hin und versuche es nochmal.','bad');return 0}};
+ c.mount($('#st'),api)}
+function fin(){const r=G.ok/G.n,s=r>=.9?3:r>=.6?2:1;stars[G.a.id]=Math.max(stars[G.a.id]||0,s);ls.s('gd_st',stars);
+ show(`<h2>${['','Gut gemacht!','Sehr gut!','Fantastisch!'][s]}</h2><p class="big" aria-label="${s} Sterne">${'⭐'.repeat(s)}</p><p>Du hast ${G.ok} von ${G.n} Aufgaben gleich beim ersten Versuch geschafft.</p><button class="btn p" id="ag">Nochmal</button><button class="btn" id="hm">Zum Menü</button>`);
+ $('#ag').onclick=()=>start(G.a);$('#hm').onclick=home}
+function settings(){const d=$('#dlg'),O=[['Schriftgröße','fs',[[17,'Normal'],[20,'Groß'],[24,'Sehr groß']]],['Aussehen','t',[['','Automatisch'],['light','Hell'],['dark','Dunkel'],['hc','Hoher Kontrast']]],['Aufgaben pro Runde','n',[[3,'3'],[5,'5'],[8,'8']]],['Aufgabe automatisch vorlesen','say',[[0,'Aus'],[1,'An']]]];
+ d.innerHTML='<h2>Einstellungen</h2>'+O.map(o=>`<p><b>${o[0]}</b></p><div class="row">${o[2].map(v=>`<button class="btn ${cfg[o[1]]==v[0]?'p':''}" data-k="${o[1]}" data-v="${v[0]}">${v[1]}</button>`).join('')}</div>`).join('')+'<p><button class="btn" id="clr">Sterne löschen</button></p><button class="btn p" id="cl">Schließen</button>';
+ d.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{const k=b.dataset.k;cfg[k]=isNaN(b.dataset.v)||b.dataset.v===''?b.dataset.v:+b.dataset.v;apply();settings()});
+ $('#clr').onclick=()=>{if(confirm('Alle Sterne löschen?')){stars={};ls.s('gd_st',stars);d.close();home()}};$('#cl').onclick=()=>d.close();if(!d.open)d.showModal()}
+$('#cfgb').onclick=settings;apply();home();
+</script></body></html>
